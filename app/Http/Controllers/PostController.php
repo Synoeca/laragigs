@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\PostMail;
+use App\Jobs\SendNewPostMailJob;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
 
 class PostController extends Controller
 {
@@ -17,7 +16,7 @@ class PostController extends Controller
      */
     public function index()
     {
-        $posts = Post::all();
+        $posts = Post::paginate(6);
         return view('posts.index', ['posts' => $posts]);
     }
 
@@ -46,8 +45,7 @@ class PostController extends Controller
 
         $validated['thumbnail'] = $request->file('thumbnail')->store('thumbnails');
         auth()->user()->posts()->create($validated);
-        //Mail::to(auth()->user()->email)->send(new PostMail());
-        Mail::to(auth()->user()->email)->send(new PostMail(['name' => 'Jiwoo', 'title' => $validated['title']]));
+        dispatch(new SendNewPostMailJob(['email' => auth()->user()->email, 'name' => auth()->user()->name, 'title' => $validated['title']]));
         return redirect()->route('posts.index');
     }
 
